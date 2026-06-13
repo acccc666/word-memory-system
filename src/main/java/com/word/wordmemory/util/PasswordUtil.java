@@ -6,7 +6,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  * 密码加密工具类
  * 使用 BCrypt 自适应哈希算法，每次加密生成不同结果，可抵御暴力破解。
  */
-public class Md5Util {
+public class PasswordUtil {
 
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder();
 
@@ -24,3 +24,4 @@ public class Md5Util {
         return ENCODER.matches(password, encrypted);
     }
 }
+

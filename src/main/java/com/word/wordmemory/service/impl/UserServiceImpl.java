@@ -6,7 +6,7 @@ import com.word.wordmemory.common.result.ResultCode;
 import com.word.wordmemory.entity.User;
 import com.word.wordmemory.mapper.UserMapper;
 import com.word.wordmemory.service.UserService;
-import com.word.wordmemory.util.Md5Util;
+import com.word.wordmemory.util.PasswordUtil;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             throw new BusinessException(ResultCode.LOGIN_ERROR.getCode(), ResultCode.LOGIN_ERROR.getMsg());
         }
-        if (!Md5Util.verify(password, user.getPassword())) {
+        if (!PasswordUtil.verify(password, user.getPassword())) {
             throw new BusinessException(ResultCode.LOGIN_ERROR.getCode(), ResultCode.LOGIN_ERROR.getMsg());
         }
         return user;
@@ -37,8 +37,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         User user = new User();
         user.setUsername(username);
-        user.setPassword(Md5Util.encrypt(password));
+        user.setPassword(PasswordUtil.encrypt(password));
         user.setCreateTime(LocalDateTime.now());
         save(user);
     }
 }
+
