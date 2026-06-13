@@ -12,5 +12,21 @@ public class Word {
     private Long bookId;
     private String english;
     private String chinese;
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getEnglish() {
+        return english;
+    }
+
+    public String getChinese() {
+        return chinese;
+    }
+
+    public Long getBookId() {
+        return bookId;
+    }
 }
 
