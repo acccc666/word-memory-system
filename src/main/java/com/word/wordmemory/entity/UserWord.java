@@ -1,8 +1,11 @@
 package com.word.wordmemory.entity;
 
+import lombok.Data;
 import com.baomidou.mybatisplus.annotation.IdType;
+import lombok.Data;
 import com.baomidou.mybatisplus.annotation.TableId;
 
+@Data
 public class UserWord {
     @TableId (type = IdType.AUTO )
     private Long id;
@@ -11,3 +14,4 @@ public class UserWord {
     private Integer forgetCount;
     private Integer wordStatus;
 }
+
