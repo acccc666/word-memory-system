@@ -24,4 +24,3 @@ public class PasswordUtil {
         return ENCODER.matches(password, encrypted);
     }
 }
-
