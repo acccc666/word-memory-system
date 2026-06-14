@@ -2,6 +2,10 @@ package com.word.wordmemory.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.word.wordmemory.entity.Word;
+import com.word.wordmemory.entity.vo.WordWithStatusVO;
 
-public interface WordService extends IService <Word > {
+import java.util.List;
+
+public interface WordService extends IService<Word> {
+    List<WordWithStatusVO> getWordsWithStatus(Long bookId, Long userId);
 }
