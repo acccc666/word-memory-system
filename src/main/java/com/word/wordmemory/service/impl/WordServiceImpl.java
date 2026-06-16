@@ -25,6 +25,7 @@ public class WordServiceImpl extends ServiceImpl<WordMapper, Word> implements Wo
 
     @Override
     public List<WordWithStatusVO> getWordsWithStatus(Long bookId, Long userId) {
+        // 分两段查询：先查单词，再查 user_word 记忆状态，内存中拼装
         List<Word> words = lambdaQuery().eq(Word::getBookId, bookId).list();
         if (words.isEmpty()) return Collections.emptyList();
 

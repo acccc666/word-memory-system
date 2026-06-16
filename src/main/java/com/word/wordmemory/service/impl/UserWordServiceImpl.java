@@ -13,18 +13,21 @@ public class UserWordServiceImpl extends ServiceImpl<UserWordMapper, UserWord> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateWordStatus(Long userId, Long wordId, Integer wordStatus) {
+        // 先查是否已有记录
         UserWord userWord = lambdaQuery()
                 .eq(UserWord::getUserId, userId)
                 .eq(UserWord::getWordId, wordId)
                 .one();
 
         if (userWord != null) {
+            // 更新已有记录
             userWord.setWordStatus(wordStatus);
             if (wordStatus == 0) {
                 userWord.setForgetCount(userWord.getForgetCount() + 1);
             }
             updateById(userWord);
         } else {
+            // 没有记录则新增
             UserWord newUw = new UserWord();
             newUw.setUserId(userId);
             newUw.setWordId(wordId);
