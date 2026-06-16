@@ -25,6 +25,9 @@ public class LoginInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request,
                              HttpServletResponse response,
                              Object handler) throws IOException {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
         // 从请求头获取 token
         String token = request.getHeader("Authorization");
         if (token == null || token.isEmpty()) {
