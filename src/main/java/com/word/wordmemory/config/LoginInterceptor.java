@@ -40,7 +40,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         }
 
         // 将 userId 存入 request 属性，方便后续使用
-        request.setAttribute("userId", userId);
+        request.setAttribute("userId", ((Number) userId).longValue());
         return true;
     }
 
@@ -52,6 +52,7 @@ public class LoginInterceptor implements HandlerInterceptor {
                 Result.fail(ResultCode.LOGIN_ERROR.getCode(), msg));
     }
 }
+
 
 
 
