@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import com.word.wordmemory.common.exception.BusinessException;
+import com.word.wordmemory.common.result.ResultCode;
+import com.word.wordmemory.entity.vo.UserProfileVO;
 
 @RestController
 @RequestMapping("/user")
@@ -59,6 +62,25 @@ public class UserController {
 
         userService.register(username, password);
         return Result.success();
+    }
+
+    @PostMapping("/logout")
+    public Result<Void> logout(@RequestHeader("Authorization") String token) {
+        redisTemplate.delete(token);
+        return Result.success();
+    }
+
+    @GetMapping("/profile")
+    public Result<UserProfileVO> profile(@RequestAttribute("userId") Long userId) {
+        User user = userService.getById(userId);
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND.getCode(), "用户不存在");
+        }
+        UserProfileVO vo = new UserProfileVO();
+        vo.setId(user.getId());
+        vo.setUsername(user.getUsername());
+        vo.setCreateTime(user.getCreateTime());
+        return Result.success(vo);
     }
 }
 
