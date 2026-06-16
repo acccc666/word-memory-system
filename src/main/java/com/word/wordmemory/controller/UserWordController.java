@@ -14,6 +14,7 @@ public class UserWordController {
     @Autowired
     private UserWordService userWordService;
 
+    // 修改单词记忆状态：0=未记住 1=模糊 2=已记住
     @PutMapping("/{wordId}/status")
     public Result<Void> updateStatus(
             @PathVariable Long wordId,

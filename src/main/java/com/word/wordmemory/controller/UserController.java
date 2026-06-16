@@ -64,12 +64,14 @@ public class UserController {
         return Result.success();
     }
 
+    // 退出登录：清除 Redis 中的 token
     @PostMapping("/logout")
     public Result<Void> logout(@RequestHeader("Authorization") String token) {
         redisTemplate.delete(token);
         return Result.success();
     }
 
+    // 个人信息：查询用户详情并返回（不含密码）
     @GetMapping("/profile")
     public Result<UserProfileVO> profile(@RequestAttribute("userId") Long userId) {
         User user = userService.getById(userId);
@@ -83,5 +85,4 @@ public class UserController {
         return Result.success(vo);
     }
 }
-
 

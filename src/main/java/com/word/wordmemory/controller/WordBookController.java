@@ -20,6 +20,7 @@ public class WordBookController {
     @Autowired
     private WordService wordService;
 
+    // 单词书分页列表（支持按目标人群 targetUser 筛选）
     @GetMapping
     public Result<IPage<WordBook>> list(
             @RequestParam(defaultValue = "1") int page,
@@ -28,6 +29,7 @@ public class WordBookController {
         return Result.success(wordBookService.getWordBooks(page, size, targetUser));
     }
 
+    // 单词列表（联表查询当前用户的记忆状态 0/1/2）
     @GetMapping("/{bookId}/words")
     public Result<List<WordWithStatusVO>> words(
             @PathVariable Long bookId,
