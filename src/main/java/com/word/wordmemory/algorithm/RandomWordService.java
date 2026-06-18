@@ -1,7 +1,12 @@
 package com.word.wordmemory.algorithm;
 
 import com.word.wordmemory.entity.Word;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.word.wordmemory.mapper.WordMapper;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,33 +27,44 @@ public class RandomWordService {
      * @param needCount 前端请求的单词数量（如 20 个）
      * @return 动态按频次生成的单词集合
      */
+    @Autowired
+    private WordMapper wordMapper;
+
     public List<Word> generateDailyWordList(Long userId, Long bookId, int needCount) {
-        // 1. 从数据库中拉取该用户在这本书里【非已记住】状态的所有单词和状态信息
-        // TODO: 替换为你的真实 SQL 查询，例如：SELECT w.*, s.status FROM word w JOIN user_word_status s ...
-        List<WordWithStatus> rawList = getMockDataFromDb();
 
-        // 2. 构建抽题池 (List)
-        List<Word> drawPool = new ArrayList<>();
+        // 👇 2. 替换为真实的数据库查询！
+        List<WordWithStatus> rawList = wordMapper.selectWordsWithStatus(userId, bookId);
 
-        for (WordWithStatus item : rawList) {
-            int status = item.getStatus(); // 假设 0:未记/未出现, 1:模糊, 2:已记
+        LocalDateTime now = LocalDateTime.now();
 
-            if (status == 2) {
-                continue; // 已记住的，直接跳过，不放入池子
-            } else if (status == 1) {
-                drawPool.add(item.getWord()); // 模糊的，放入 1 次
-            } else if (status == 0) {
-                drawPool.add(item.getWord()); // 未记住的，放入 2 次（概率翻倍，出现两次）
-                drawPool.add(item.getWord());
-            }
-        }
+        // 3. 后面的核心计算流水线保持不变...
+        List<Word> finalWordList = rawList.stream()
+                .filter(item -> {
+                    // 防御性编程：如果是第一次背，数据库里没状态记录（status 为 null），当作未记(0)处理
+                    if (item.getStatus() == null) {
+                        item.setStatus(0);
+                    }
+                    return item.getStatus() != 2; // 踢掉已记住的
+                })
+                .peek(item -> {
+                    long hoursPassed = 0;
+                    // 如果是没背过的新词，lastReviewTime 也是 null
+                    if (item.getLastReviewTime() != null) {
+                        hoursPassed = Duration.between(item.getLastReviewTime(), now).toHours();
+                    } else {
+                        hoursPassed = 72; // 新词默认给较高曝光率
+                    }
 
-        // 3. 核心机制：彻底打乱池子（洗牌）
-        Collections.shuffle(drawPool);
+                    double baseScore = (item.getStatus() == 0) ? 100.0 : 60.0;
+                    double timeDecayBonus = hoursPassed * 1.5;
+                    item.setPriorityScore(baseScore + timeDecayBonus);
+                })
+                .sorted((a, b) -> Double.compare(b.getPriorityScore(), a.getPriorityScore()))
+                .limit(needCount)
+                .map(WordWithStatus::getWord)
+                .collect(Collectors.toList());
 
-        // 4. 截取所需的数量返回，注意防止越界
-        int toIndex = Math.min(needCount, drawPool.size());
-        return drawPool.subList(0, toIndex);
+        return finalWordList;
     }
 
     /**
