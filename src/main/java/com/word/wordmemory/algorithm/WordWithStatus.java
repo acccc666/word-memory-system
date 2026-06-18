@@ -13,6 +13,6 @@ public class WordWithStatus {
     // 新增：记录该用户上一次背这个词的时间
     private LocalDateTime lastReviewTime;
 
-    // 新增：不存数据库，只在算法执行时作为排序依据的“战斗力分数”
+    // 新增：不存数据库，只在算法执行时作为排序依据
     private Double priorityScore;
 }
