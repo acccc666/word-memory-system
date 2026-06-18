@@ -32,7 +32,7 @@ public class RandomWordService {
 
     public List<Word> generateDailyWordList(Long userId, Long bookId, int needCount) {
 
-        // 👇 2. 替换为真实的数据库查询！
+        // ?? 2. 替换为真实的数据库查询！
         List<WordWithStatus> rawList = wordMapper.selectWordsWithStatus(userId, bookId);
 
         LocalDateTime now = LocalDateTime.now();

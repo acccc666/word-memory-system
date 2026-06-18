@@ -20,19 +20,19 @@ public class WordBookController {
     @Autowired
     private WordService wordService;
 
-    // 单词书分页列表（支持按目标人群 targetUser 筛选）
+    // 单词书分页列表（支持按目标人??targetUser 筛选）
     @GetMapping
     public Result<IPage<WordBook>> list(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String targetUser) {
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "targetUser", required = false) String targetUser) {
         return Result.success(wordBookService.getWordBooks(page, size, targetUser));
     }
 
-    // 单词列表（联表查询当前用户的记忆状态 0/1/2）
+    // 单词列表（联表查询当前用户的记忆状??0/1/2??
     @GetMapping("/{bookId}/words")
     public Result<List<WordWithStatusVO>> words(
-            @PathVariable Long bookId,
+            @PathVariable(name = "bookId") Long bookId,
             @RequestAttribute("userId") Long userId) {
         return Result.success(wordService.getWordsWithStatus(bookId, userId));
     }

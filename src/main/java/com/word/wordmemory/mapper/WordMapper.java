@@ -14,9 +14,9 @@ public interface WordMapper extends BaseMapper<Word> {
     /**
      * 联表查询：获取用户在某本单词书下的所有单词及其记忆状态
      */
-    @Select("SELECT w.*, s.status, s.last_review_time " +
+    @Select("SELECT w.*, s.word_status AS status " +
             "FROM word w " +
-            "LEFT JOIN user_word_status s " +
+            "LEFT JOIN user_word s " +
             "  ON w.id = s.word_id AND s.user_id = #{userId} " +
             "WHERE w.book_id = #{bookId}")
     List<WordWithStatus> selectWordsWithStatus(@Param("userId") Long userId, @Param("bookId") Long bookId);
