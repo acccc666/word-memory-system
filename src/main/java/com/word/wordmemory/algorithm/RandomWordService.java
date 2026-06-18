@@ -13,12 +13,7 @@ import java.util.stream.Collectors;
 @Service
 public class RandomWordService {
 
-    // 假设你有一个用于操作数据库的 Mapper，这里先用伪代码表示
-    // @Autowired
-    // private WordMapper wordMapper;
 
-    // @Autowired
-    // private UserWordStatusMapper statusMapper;
 
     /**
      * 核心算法 1：根据记忆状态动态生成背单词列表（内存池化 + 洗牌算法）
@@ -68,40 +63,55 @@ public class RandomWordService {
     }
 
     /**
-     * 核心算法 2：生成单道自测题，配上 1对 3错 的随机干扰选项
-     * * @param correctWord 正确的单词对象
-     * @param allBookMeanings 该单词书中所有单词的中文释义集合（用于抽干扰项）
+     * 核心算法 2（完全体）：生成单道自测题，支持“英译中”与“中译英”动态切换
+     *
+     * @param correctWord  正确的单词对象
+     * @param allBookWords 该单词书中所有单词的集合（用于抽干扰项）
+     * @param isEnToZh     true 为看英文选中文，false 为看中文选英文
      * @return 封装好的测试题 DTO
      */
-    public QuizQuestionData generateSingleQuiz(Word correctWord, List<String> allBookMeanings) {
+    /**
+     * 核心算法 2（完全体）：生成单道自测题，支持“英译中”与“中译英”动态切换
+     *
+     * @param correctWord  正确的单词对象
+     * @param allBookWords 该单词书中所有单词的集合（用于抽干扰项）
+     * @param isEnToZh     true 为看英文选中文，false 为看中文选英文
+     * @return 封装好的测试题 DTO
+     */
+    public QuizQuestionData generateSingleQuiz(Word correctWord, List<Word> allBookWords, boolean isEnToZh) {
         QuizQuestionData quiz = new QuizQuestionData();
-        quiz.setWordId(correctWord.getId());
-        quiz.setEnglishWord(correctWord.getEnglish());
+        quiz.setWordId(Math.toIntExact(correctWord.getId()));
 
-        String correctAnswer = correctWord.getChinese();
+        // 1. 动态设置题干和正确答案
+        String questionText = isEnToZh ? correctWord.getEnglish() : correctWord.getChinese();
+        String correctAnswer = isEnToZh ? correctWord.getChinese() : correctWord.getEnglish();
+
+        quiz.setQuestionText(questionText); // 需要在你的 QuizQuestionData 里加这个字段
         quiz.setCorrectAnswer(correctAnswer);
+        // 标记一下题目类型，方便前端显示不同的 UI (1:英译中, 2:中译英)
+        quiz.setQuestionType(isEnToZh ? 1 : 2);
 
-        // 1. 使用 Set 来保证选项的唯一性（防止抽到重复的错误答案）
+        // 2. 使用 Set 保证干扰项不重复
         Set<String> optionSet = new HashSet<>();
-        optionSet.add(correctAnswer); // 先把正确答案放进去
+        optionSet.add(correctAnswer);
 
-        // 2. 随机抽取干扰项
         Random random = new Random();
-        int maxAttempts = 100; // 防止死循环的安全阀
+        int maxAttempts = 100;
         int attempts = 0;
 
-        // 循环直到凑满 4 个选项
+        // 3. 抽取干扰项（必须和题目类型匹配！）
         while (optionSet.size() < 4 && attempts < maxAttempts) {
-            // 随机生成一个索引，取出对应的中文释义
-            int randomIndex = random.nextInt(allBookMeanings.size());
-            String randomMeaning = allBookMeanings.get(randomIndex);
+            int randomIndex = random.nextInt(allBookWords.size());
+            Word randomWord = allBookWords.get(randomIndex);
 
-            // Set 会自动去重，如果抽到了和正确答案一样的，或者抽到了重复的干扰项，加不进去
-            optionSet.add(randomMeaning);
+            // 如果是考英译中，干扰项就是中文；如果是考中译英，干扰项就是英文
+            String wrongOption = isEnToZh ? randomWord.getChinese() : randomWord.getEnglish();
+
+            optionSet.add(wrongOption);
             attempts++;
         }
 
-        // 3. 将 Set 转为 List 并打乱顺序（让正确答案随机出现在 A/B/C/D 的位置）
+        // 4. 打乱选项顺序
         List<String> finalOptions = new ArrayList<>(optionSet);
         Collections.shuffle(finalOptions);
 
