@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface WordService extends IService<Word> {
     List<WordWithStatusVO> getWordsWithStatus(Long bookId, Long userId);
+    List<WordWithStatusVO> getStudyWords(Long bookId, Long userId, int needCount);
 }
