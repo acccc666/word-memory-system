@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import com.word.wordmemory.entity.vo.ExamSubmitRequest;
 import java.util.stream.Collectors;
 
 @Service
@@ -70,7 +71,7 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> submitExam(Long userId, Long examId, List<Map<String, Object>> answers) {
+    public Map<String, Object> submitExam(Long userId, Long examId, List<ExamSubmitRequest.Answer> answers) {
         // 1. 查找考试记录
         ExamRecord record = examRecordService.getById(examId);
         if (record == null || !record.getUserId().equals(userId)) {
@@ -85,9 +86,9 @@ public class ExamServiceImpl implements ExamService {
         int total = answers.size();
         List<Map<String, Object>> details = new ArrayList<>();
 
-        for (Map<String, Object> answer : answers) {
-            Long wordId = Long.valueOf(answer.get("wordId").toString());
-            String selected = (String) answer.get("selectedAnswer");
+        for (ExamSubmitRequest.Answer answer : answers) {
+            Long wordId = answer.getWordId();
+            String selected = answer.getSelectedAnswer();
 
             // 从数据库获取正确答案
             Word word = wordService.getById(wordId);

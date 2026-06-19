@@ -1,14 +1,18 @@
-package com.word.wordmemory.controller;
+package com.word.wordmemory.controller; // 注意替换为你们的包名
 
-import com.word.wordmemory.common.result.Result;
-import com.word.wordmemory.entity.ExamRecord;
-import com.word.wordmemory.service.ExamService;
+import com.word.wordmemory.algorithm.QuizQuestionData;
+import com.word.wordmemory.common.result.Result; // 根据你们实际的Result路径修改
+import com.word.wordmemory.DTO.StartExamDTO;
+import com.word.wordmemory.DTO.SubmitExamDTO;
+import com.word.wordmemory.algorithm.ExamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 专门负责“单词自测（考试）”模块的接口
+ */
 @RestController
 @RequestMapping("/exam")
 public class ExamController {
@@ -16,32 +20,43 @@ public class ExamController {
     @Autowired
     private ExamService examService;
 
-    // 开始考试
+    /**
+     * 1. 开始考试（含断点续考逻辑）
+     * API: POST /exam/start
+     */
     @PostMapping("/start")
-    public Result<Map<String, Object>> start(
+    public Result<List<QuizQuestionData>> startExam(
             @RequestAttribute("userId") Long userId,
-            @RequestBody Map<String, Object> params) {
-        Long bookId = Long.valueOf(params.get("bookId").toString());
-        int questionCount = Integer.parseInt(params.getOrDefault("questionCount", "10").toString());
-        int setTime = Integer.parseInt(params.getOrDefault("setTime", "10").toString());
-        return Result.success(examService.startExam(userId, bookId, questionCount, setTime));
+            @RequestBody StartExamDTO dto) {
+
+        // 参数校验（防止前端传乱七八糟的比例过来）
+        if (dto.getEnToZhRatio() < 0 || dto.getEnToZhRatio() > 1) {
+            return Result.fail(400, "题型比例必须在 0.0 到 1.0 之间");
+        }
+
+        // 呼叫 Service 层的 Redis 引擎去拿试卷
+        List<QuizQuestionData> examPaper = examService.startExam(
+                userId,
+                dto.getBookId(),
+                dto.getExamCount(),
+                dto.getEnToZhRatio()
+        );
+
+        return Result.success(examPaper);
     }
 
-    // 提交答卷
-    @PostMapping("/{examId}/submit")
-    public Result<Map<String, Object>> submit(
+    /**
+     * 2. 提交试卷并记录分数
+     * API: POST /exam/submit
+     */
+    @PostMapping("/submit")
+    public Result<Void> submitExam(
             @RequestAttribute("userId") Long userId,
-            @PathVariable(name = "examId") Long examId,
-            @RequestBody Map<String, Object> body) {
-        List<Map<String, Object>> answers = (List<Map<String, Object>>) body.get("answers");
-        return Result.success(examService.submitExam(userId, examId, answers));
-    }
+            @RequestBody SubmitExamDTO dto) {
 
-    // 考试记录
-    @GetMapping("/records")
-    public Result<List<ExamRecord>> records(
-            @RequestAttribute("userId") Long userId,
-            @RequestParam(name = "bookId", required = false) Long bookId) {
-        return Result.success(examService.getRecords(userId, bookId));
+        // 呼叫 Service 层，把分数记录到数据库，并销毁 Redis 里的临时试卷
+        examService.submitExam(userId, dto.getBookId(), dto.getScore());
+
+        return Result.success();
     }
 }
