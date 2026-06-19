@@ -1,4 +1,4 @@
-﻿package com.word.wordmemory.service;
+package com.word.wordmemory.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.word.wordmemory.entity.UserWord;

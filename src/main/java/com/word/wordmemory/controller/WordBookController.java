@@ -1,4 +1,4 @@
-﻿package com.word.wordmemory.controller;
+package com.word.wordmemory.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.word.wordmemory.common.result.Result;

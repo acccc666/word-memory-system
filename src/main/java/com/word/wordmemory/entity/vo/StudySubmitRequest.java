@@ -1,4 +1,4 @@
-﻿package com.word.wordmemory.entity.vo;
+package com.word.wordmemory.entity.vo;
 
 import java.util.List;
 

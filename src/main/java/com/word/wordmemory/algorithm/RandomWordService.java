@@ -1,4 +1,4 @@
-﻿package com.word.wordmemory.algorithm;
+package com.word.wordmemory.algorithm;
 
 import com.word.wordmemory.entity.Word;
 import org.springframework.stereotype.Service;

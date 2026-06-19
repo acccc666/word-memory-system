@@ -1,4 +1,4 @@
-﻿package com.word.wordmemory.service.impl;
+package com.word.wordmemory.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;

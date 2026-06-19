@@ -1,4 +1,4 @@
-﻿package com.word.wordmemory.controller;
+package com.word.wordmemory.controller;
 
 import com.word.wordmemory.common.result.Result;
 import com.word.wordmemory.entity.vo.StudySubmitRequest;
