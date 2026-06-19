@@ -56,14 +56,25 @@ public class UserWordServiceImpl extends ServiceImpl<UserWordMapper, UserWord> i
 
         // 2. 逐条处理
         for (StudySubmitRequest.WordResult r : results) {
-            boolean isRemembered = "remembered".equals(r.getAction());
-            int newStatus = isRemembered ? 2 : 0;
+            int newStatus;
+            boolean incForget = false;
+            switch (r.getAction()) {
+                case "remembered":
+                    newStatus = 2;
+                    break;
+                case "fuzzy":
+                    newStatus = 1;
+                    break;
+                default: // forgot / wrong
+                    newStatus = 0;
+                    incForget = true;
+                    break;
+            }
 
             UserWord uw = existingMap.get(r.getWordId());
             if (uw != null) {
                 uw.setWordStatus(newStatus);
-                // 只要不是"已记住"，遗忘次数 +1
-                if (!isRemembered) {
+                if (incForget) {
                     uw.setForgetCount(uw.getForgetCount() + 1);
                 }
                 updateById(uw);
@@ -72,7 +83,7 @@ public class UserWordServiceImpl extends ServiceImpl<UserWordMapper, UserWord> i
                 newUw.setUserId(userId);
                 newUw.setWordId(r.getWordId());
                 newUw.setWordStatus(newStatus);
-                newUw.setForgetCount(isRemembered ? 0 : 1);
+                newUw.setForgetCount(incForget ? 1 : 0);
                 save(newUw);
             }
         }

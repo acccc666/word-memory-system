@@ -25,7 +25,8 @@ public class WordBookController {
     public Result<IPage<WordBook>> list(
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(name = "targetUser", required = false) String targetUser) {
+            @RequestParam(name = "targetUser", required = false) String targetUser,
+            @RequestParam(name = "bookName", required = false) String bookName) {
         return Result.success(wordBookService.getWordBooks(page, size, targetUser));
     }
 
