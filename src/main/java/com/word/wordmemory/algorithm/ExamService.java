@@ -56,7 +56,7 @@ public class ExamService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 3. 🌟🌟🌟 核心引擎替换：艾宾浩斯时间衰减动态排序 🌟🌟🌟
+        // 3.  核心引擎替换：艾宾浩斯时间衰减动态排序
         List<Word> targetWords = allBookWords.stream()
                 .sorted((w1, w2) -> {
                     UserWord uw1 = userWordMap.get(w1.getId());
@@ -87,7 +87,7 @@ public class ExamService {
     }
 
     /**
-     * 艾宾浩斯动态权重得分计算器 (对应你 PPT 上的核心公式)
+     * 艾宾浩斯动态权重得分计算器
      */
     private double calculateDecayScore(UserWord uw, LocalDateTime now) {
         // 如果是从来没背过的纯生词，赋予极高的基础分，强制优先出题
