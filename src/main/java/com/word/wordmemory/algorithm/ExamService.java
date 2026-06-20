@@ -1,92 +1,136 @@
-package com.word.wordmemory.algorithm; // 注意：建议把它从 algorithm 挪到 service 包下
+package com.word.wordmemory.algorithm; // 根据你的实际包名调整
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.word.wordmemory.algorithm.QuizQuestionData;
 import com.word.wordmemory.algorithm.RandomWordService;
 import com.word.wordmemory.entity.ExamRecord;
+import com.word.wordmemory.entity.UserWord;
 import com.word.wordmemory.entity.Word;
-import com.word.wordmemory.mapper.ExamRecordMapper;
+import com.word.wordmemory.service.ExamRecordService;
+import com.word.wordmemory.service.UserWordService;
+import com.word.wordmemory.service.WordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class ExamService {
 
-    // 🌟 注入咱们专门负责考试记录的 Mapper
-    @Autowired
-    private ExamRecordMapper examRecordMapper;
-
     @Autowired
     private RandomWordService randomWordService;
-
+    @Autowired
+    private WordService wordService;
+    @Autowired
+    private ExamRecordService examRecordService;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
-    // 假设你有 Mapper 可以查出书里所有的单词
-    // @Autowired
-    // private WordMapper wordMapper;
+    // 🌟 新增：注入用户单词状态服务，用于获取用户的历史背诵/复习记录
+    @Autowired
+    private UserWordService userWordService;
 
-    /**
-     * 生成试卷并存入 Redis (开始考试)
-     */
-    @SuppressWarnings("unchecked") // 消除强转 List 的黄色警告
+    @SuppressWarnings("unchecked")
     public List<QuizQuestionData> startExam(Long userId, Long bookId, int examCount, double enToZhRatio) {
         String redisKey = "exam_session:user:" + userId + ":book:" + bookId;
-
-        // 1. 检查 Redis 是否有未完成的试卷（断点续考逻辑）
         if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
-            // 发现暂存记录，直接返回之前的试卷
+            // 命中缓存，触发断点续考
             return (List<QuizQuestionData>) redisTemplate.opsForValue().get(redisKey);
         }
 
-        // 2. 如果没有，开始生成新试卷
-        // 先用你的时间衰减引擎，挑出最需要考的 N 个词
-        List<Word> targetWords = randomWordService.generateDailyWordList(userId, bookId, examCount);
+        // 1. 获取全书单词库及干扰项字典
+        List<Word> allBookWords = wordService.lambdaQuery().eq(Word::getBookId, bookId).list();
+        List<String> allMeanings = allBookWords.stream().map(Word::getChinese).collect(Collectors.toList());
+        List<String> allEnglish = allBookWords.stream().map(Word::getEnglish).collect(Collectors.toList());
 
-        // 获取全书单词库用于抽干扰项 (替换为真实 Mapper 调用)
-        // List<Word> allBookWords = wordMapper.selectList(new QueryWrapper<Word>().eq("book_id", bookId));
-        List<Word> allBookWords = new ArrayList<>(); // 伪代码占位
+        // 2. 获取当前用户背诵过的单词状态记录，并转为 Map 加速查询 (WordID -> 记录)
+        List<UserWord> userWords = userWordService.lambdaQuery().eq(UserWord::getUserId, userId).list();
+        Map<Long, UserWord> userWordMap = userWords.stream()
+                .collect(Collectors.toMap(UserWord::getWordId, uw -> uw, (v1, v2) -> v2));
 
+        LocalDateTime now = LocalDateTime.now();
+
+        // 3. 🌟🌟🌟 核心引擎替换：艾宾浩斯时间衰减动态排序 🌟🌟🌟
+        List<Word> targetWords = allBookWords.stream()
+                .sorted((w1, w2) -> {
+                    UserWord uw1 = userWordMap.get(w1.getId());
+                    UserWord uw2 = userWordMap.get(w2.getId());
+
+                    // 分别计算两个单词当前的“饥渴度”权重得分
+                    double score1 = calculateDecayScore(uw1, now);
+                    double score2 = calculateDecayScore(uw2, now);
+
+                    // 按照得分从高到低倒序排（分数越高的优先进入考卷）
+                    return Double.compare(score2, score1);
+                })
+                .limit(examCount) // 截取权重最高的前 N 个单词
+                .collect(Collectors.toList());
+
+        // 4. 组装试卷
         List<QuizQuestionData> examPaper = new ArrayList<>();
         Random random = new Random();
-
-        // 3. 组装每道题，并控制英/中比例
         for (Word targetWord : targetWords) {
-            // 比如 ratio 是 0.7，那么随机数 < 0.7 时就是英译中
             boolean isEnToZh = random.nextDouble() < enToZhRatio;
-            QuizQuestionData question = randomWordService.generateSingleQuiz(targetWord, allBookWords, isEnToZh);
+            QuizQuestionData question = randomWordService.generateSingleQuiz(targetWord, allMeanings, allEnglish, isEnToZh);
             examPaper.add(question);
         }
 
-        // 4. 存入 Redis，设置 2 小时过期（防内存泄漏）
+        // 5. 存入 Redis 保障断点续考
         redisTemplate.opsForValue().set(redisKey, examPaper, 2, TimeUnit.HOURS);
-
         return examPaper;
     }
 
     /**
-     * 提交试卷结束考试
+     * 艾宾浩斯动态权重得分计算器 (对应你 PPT 上的核心公式)
      */
-    public void submitExam(Long userId, Long bookId, int score) {
+    private double calculateDecayScore(UserWord uw, LocalDateTime now) {
+        // 如果是从来没背过的纯生词，赋予极高的基础分，强制优先出题
+        if (uw == null || uw.getLastReviewTime() == null) {
+            return 10000.0;
+        }
 
-        // 🌟 1. 实现真正的保存分数逻辑！
+        // ΔT: 距离上次复习经过了多少个小时
+        long hoursSinceLast = Math.max(0, ChronoUnit.HOURS.between(uw.getLastReviewTime(), now));
+
+        // 获取错误次数
+        int forgetCount = uw.getForgetCount() != null ? uw.getForgetCount() : 0;
+
+        // PPT 核心公式: Score = S_base + ΔT * α
+        // 这里 S_base = forgetCount * 10
+        // 衰减系数 α = 1.5 (每过1小时，出题概率增加 1.5)
+        return (forgetCount * 10) + (hoursSinceLast * 1.5);
+    }
+
+    public void submitExam(Long userId, Long bookId, Integer score) {
+        String redisKey = "exam_session:user:" + userId + ":book:" + bookId;
+        redisTemplate.delete(redisKey);
+
         ExamRecord record = new ExamRecord();
         record.setUserId(userId);
         record.setBookId(bookId);
-        record.setScore(score);
-        record.setCreateTime(LocalDateTime.now()); // 记录当前交卷时间
+        record.setScore(score != null ? score : 0);
+        record.setCreateTime(LocalDateTime.now());
+        examRecordService.save(record);
+    }
 
-        // 调用 Mapper，把这条成绩记录真正写进 MySQL 的 exam_record 表里
-        examRecordMapper.insert(record);
-
-        // 🌟 2. 考试结束，清理 Redis 里的临时会话
-        String redisKey = "exam_session:user:" + userId + ":book:" + bookId;
-        redisTemplate.delete(redisKey);
+    public IPage<ExamRecord> getRecords(Long userId, Long bookId, int page, int size) {
+        Page<ExamRecord> pageObj = new Page<>(page, size);
+        if (bookId != null) {
+            return examRecordService.lambdaQuery()
+                    .eq(ExamRecord::getUserId, userId)
+                    .eq(ExamRecord::getBookId, bookId)
+                    .orderByDesc(ExamRecord::getCreateTime)
+                    .page(pageObj);
+        }
+        return examRecordService.lambdaQuery()
+                .eq(ExamRecord::getUserId, userId)
+                .orderByDesc(ExamRecord::getCreateTime)
+                .page(pageObj);
     }
 }
