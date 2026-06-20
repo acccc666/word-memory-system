@@ -1,10 +1,11 @@
 package com.word.wordmemory.controller; // 注意替换为你们的包名
 
+import com.word.wordmemory.algorithm.ExamService;
 import com.word.wordmemory.algorithm.QuizQuestionData;
 import com.word.wordmemory.common.result.Result; // 根据你们实际的Result路径修改
 import com.word.wordmemory.DTO.StartExamDTO;
 import com.word.wordmemory.DTO.SubmitExamDTO;
-import com.word.wordmemory.algorithm.ExamService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

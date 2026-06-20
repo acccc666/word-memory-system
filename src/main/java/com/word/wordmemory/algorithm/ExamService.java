@@ -1,11 +1,15 @@
-package com.word.wordmemory.algorithm;
+package com.word.wordmemory.algorithm; // 注意：建议把它从 algorithm 挪到 service 包下
 
+import com.word.wordmemory.algorithm.QuizQuestionData;
 import com.word.wordmemory.algorithm.RandomWordService;
+import com.word.wordmemory.entity.ExamRecord;
 import com.word.wordmemory.entity.Word;
+import com.word.wordmemory.mapper.ExamRecordMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -13,6 +17,10 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class ExamService {
+
+    // 🌟 注入咱们专门负责考试记录的 Mapper
+    @Autowired
+    private ExamRecordMapper examRecordMapper;
 
     @Autowired
     private RandomWordService randomWordService;
@@ -27,11 +35,12 @@ public class ExamService {
     /**
      * 生成试卷并存入 Redis (开始考试)
      */
+    @SuppressWarnings("unchecked") // 消除强转 List 的黄色警告
     public List<QuizQuestionData> startExam(Long userId, Long bookId, int examCount, double enToZhRatio) {
         String redisKey = "exam_session:user:" + userId + ":book:" + bookId;
 
         // 1. 检查 Redis 是否有未完成的试卷（断点续考逻辑）
-        if (redisTemplate.hasKey(redisKey)) {
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
             // 发现暂存记录，直接返回之前的试卷
             return (List<QuizQuestionData>) redisTemplate.opsForValue().get(redisKey);
         }
@@ -65,9 +74,18 @@ public class ExamService {
      * 提交试卷结束考试
      */
     public void submitExam(Long userId, Long bookId, int score) {
-        // 1. 把分数保存到 MySQL 的 test_record 表...
 
-        // 2. 考试结束，清理 Redis 里的临时会话
+        // 🌟 1. 实现真正的保存分数逻辑！
+        ExamRecord record = new ExamRecord();
+        record.setUserId(userId);
+        record.setBookId(bookId);
+        record.setScore(score);
+        record.setCreateTime(LocalDateTime.now()); // 记录当前交卷时间
+
+        // 调用 Mapper，把这条成绩记录真正写进 MySQL 的 exam_record 表里
+        examRecordMapper.insert(record);
+
+        // 🌟 2. 考试结束，清理 Redis 里的临时会话
         String redisKey = "exam_session:user:" + userId + ":book:" + bookId;
         redisTemplate.delete(redisKey);
     }
