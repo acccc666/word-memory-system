@@ -2,7 +2,6 @@ package com.word.wordmemory.entity;
 
 import lombok.Data;
 import com.baomidou.mybatisplus.annotation.IdType;
-import lombok.Data;
 import com.baomidou.mybatisplus.annotation.TableId;
 
 import java.time.LocalDateTime;

@@ -21,6 +21,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public Result<?> handleSystemException(Exception e) {
         e.printStackTrace();
-        return Result.fail(ResultCode.SERVER_ERROR.getCode(), "服务器繁忙，请稍后再试");
+        return Result.fail(ResultCode.SERVER_ERROR.getCode(), ResultCode.SERVER_ERROR.getMsg());
     }
 }

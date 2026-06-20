@@ -14,9 +14,10 @@ public class UserWordController {
     @Autowired
     private UserWordService userWordService;
 
+    // 修改单词记忆状态：0=未记??1=模糊 2=已记??
     @PutMapping("/{wordId}/status")
     public Result<Void> updateStatus(
-            @PathVariable Long wordId,
+            @PathVariable(name = "wordId") Long wordId,
             @RequestAttribute("userId") Long userId,
             @RequestBody Map<String, Integer> body) {
         Integer wordStatus = body.get("wordStatus");

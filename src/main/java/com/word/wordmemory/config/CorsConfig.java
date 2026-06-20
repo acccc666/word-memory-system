@@ -26,9 +26,9 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 注册登录拦截器，排除登录/注册接口（其他接口需携带 Authorization 头）
         registry.addInterceptor(new LoginInterceptor(redisTemplate))
                 .addPathPatterns("/**")
                 .excludePathPatterns("/user/login", "/user/register");
     }
 }
-

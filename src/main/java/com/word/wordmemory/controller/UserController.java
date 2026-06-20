@@ -35,7 +35,7 @@ public class UserController {
 
         User user = userService.login(username, password);
         String token = "token:" + UUID.randomUUID().toString().replace("-", "");
-        redisTemplate.opsForValue().set(token, user.getId(), 30, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(token, user.getId(), 24, TimeUnit.HOURS);
         return Result.success(token);
     }
 
@@ -61,5 +61,3 @@ public class UserController {
         return Result.success();
     }
 }
-
-
