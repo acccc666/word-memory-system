@@ -9,6 +9,8 @@ import com.word.wordmemory.mapper.UserWordMapper;
 import com.word.wordmemory.mapper.WordMapper;
 import com.word.wordmemory.service.WordService;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -57,7 +59,46 @@ public class WordServiceImpl extends ServiceImpl<WordMapper, Word> implements Wo
         }).collect(Collectors.toList());
     }
 
+    
     @Override
+    public IPage<WordWithStatusVO> getWordsWithStatusPage(Long bookId, Long userId, int page, int size) {
+        Page<Word> wordPage = new Page<>(page, size);
+        Page<Word> result = lambdaQuery().eq(Word::getBookId, bookId).page(wordPage);
+        if (result.getRecords().isEmpty()) {
+            Page<WordWithStatusVO> empty = new Page<>(page, size);
+            empty.setRecords(java.util.Collections.emptyList());
+            return empty;
+        }
+        java.util.List<Long> wordIds = result.getRecords().stream().map(Word::getId).collect(java.util.stream.Collectors.toList());
+        java.util.List<UserWord> userWords = userWordMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserWord>()
+                        .eq(UserWord::getUserId, userId)
+                        .in(UserWord::getWordId, wordIds)
+        );
+        java.util.Map<Long, UserWord> userWordMap = userWords.stream()
+                .collect(Collectors.toMap(uw -> uw.getWordId(), java.util.function.Function.identity()));
+        java.util.List<WordWithStatusVO> voList = result.getRecords().stream().map(word -> {
+            WordWithStatusVO vo = new WordWithStatusVO();
+            vo.setWordId(word.getId());
+            vo.setEnglish(word.getEnglish());
+            vo.setChinese(word.getChinese());
+            UserWord uw = userWordMap.get(word.getId());
+            if (uw != null) {
+                vo.setWordStatus(uw.getWordStatus());
+                vo.setForgetCount(uw.getForgetCount());
+            } else {
+                vo.setWordStatus(0);
+                vo.setForgetCount(0);
+            }
+            return vo;
+        }).collect(java.util.stream.Collectors.toList());
+        Page<WordWithStatusVO> voPage = new Page<>(page, size);
+        voPage.setRecords(voList);
+        voPage.setTotal(result.getTotal());
+        return voPage;
+    }
+
+@Override
     public List<WordWithStatusVO> getStudyWords(Long bookId, Long userId, int needCount) {
         // 1. 获取该单词书下所有单词及用户的记忆状态
         List<WordWithStatusVO> allWords = getWordsWithStatus(bookId, userId);
