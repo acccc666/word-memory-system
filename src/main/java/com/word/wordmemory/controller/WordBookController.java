@@ -8,11 +8,13 @@ import com.word.wordmemory.service.WordBookService;
 import com.word.wordmemory.service.WordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 单词书控制器 —— 单词书列表 / 单词查询 / 学习调度 / 统计
+ */
 @RestController
 @RequestMapping("/word-books")
 public class WordBookController {
@@ -22,6 +24,10 @@ public class WordBookController {
     @Autowired
     private WordService wordService;
 
+    /**
+     * 单词书列表（分页，可筛选目标用户）
+     * GET /word-books?page=1&size=10&targetUser=四级
+     */
     @GetMapping
     public Result<IPage<WordBook>> list(
             @RequestParam(name = "page", defaultValue = "1") int page,
@@ -30,6 +36,10 @@ public class WordBookController {
         return Result.success(wordBookService.getWordBooks(page, size, targetUser));
     }
 
+    /**
+     * 查询某本书的所有单词（带每个单词的记忆状态）
+     * GET /word-books/{bookId}/words
+     */
     @GetMapping("/{bookId}/words")
     public Result<List<WordWithStatusVO>> words(
             @PathVariable(name = "bookId") Long bookId,
@@ -37,6 +47,10 @@ public class WordBookController {
         return Result.success(wordService.getWordsWithStatus(bookId, userId));
     }
 
+    /**
+     * 获取学习单词列表（按记忆状态调度）
+     * GET /word-books/{bookId}/study?count=20
+     */
     @GetMapping("/{bookId}/study")
     public Result<List<WordWithStatusVO>> study(
             @PathVariable(name = "bookId") Long bookId,
@@ -45,6 +59,10 @@ public class WordBookController {
         return Result.success(wordService.getStudyWords(bookId, userId, needCount));
     }
 
+    /**
+     * 统计该书的单词背诵进度
+     * GET /word-books/{bookId}/stats
+     */
     @GetMapping("/{bookId}/stats")
     public Result<Map<String, Object>> getStats(
             @PathVariable(name = "bookId") Long bookId,

@@ -2,15 +2,11 @@ package com.word.wordmemory.DTO;
 
 import lombok.Data;
 
+/**
+ * 提交试卷请求参数
+ */
 @Data
 public class SubmitExamDTO {
-    /**
-     * 刚才考的那本单词书 ID
-     */
-    private Long bookId;
-
-    /**
-     * 前端计算出来的最终得分
-     */
-    private Integer score;
+    private Long bookId;    // 单词书 ID
+    private Integer score;  // 最终得分
 }

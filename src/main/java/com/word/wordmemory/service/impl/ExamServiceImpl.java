@@ -88,7 +88,7 @@ public class ExamServiceImpl implements ExamService {
 
         for (ExamSubmitRequest.Answer answer : answers) {
             Long wordId = answer.getWordId();
-            String selected = answer.getSelectedAnswer();
+            String selected = answer.getSelected();
 
             // 从数据库获取正确答案
             Word word = wordService.getById(wordId);
