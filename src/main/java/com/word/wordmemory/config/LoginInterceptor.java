@@ -48,7 +48,7 @@ public class LoginInterceptor implements HandlerInterceptor {
 
     private void writeUnauthorized(HttpServletResponse response, String msg) throws IOException {
         response.setContentType("application/json;charset=UTF-8");
-        response.setStatus(401);
+        response.setStatus(400);
         ObjectMapper mapper = new ObjectMapper();
         mapper.writeValue(response.getWriter(),
                 Result.fail(ResultCode.LOGIN_ERROR.getCode(), msg));
